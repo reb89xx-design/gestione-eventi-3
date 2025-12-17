@@ -1,3 +1,4 @@
+# models.py
 from sqlalchemy import Column, Integer, String, Date, Table, ForeignKey, Text
 from sqlalchemy.orm import declarative_base, relationship
 
@@ -26,7 +27,7 @@ class Event(Base):
     format_id = Column(Integer, ForeignKey("formats.id"), nullable=True)
     promoter_id = Column(Integer, ForeignKey("promoters.id"), nullable=True)
     tour_manager_id = Column(Integer, ForeignKey("tour_managers.id"), nullable=True)
-    status = Column(String, default="bozza")  # bozza, confermato, cancellato
+    status = Column(String, default="bozza")
     notes = Column(Text, default="")
 
     artists = relationship("Artist", secondary=event_artist, back_populates="events")
@@ -39,7 +40,9 @@ class Artist(Base):
     __tablename__ = "artists"
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=True, nullable=False)
-    contact = Column(String, default="")
+    role = Column(String, default="artist")   # es: artist, mascot, vocalist, dancer
+    phone = Column(String, default="")
+    email = Column(String, default="")
     notes = Column(Text, default="")
     events = relationship("Event", secondary=event_artist, back_populates="artists")
 
@@ -47,6 +50,8 @@ class Service(Base):
     __tablename__ = "services"
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=True, nullable=False)
+    contact = Column(String, default="")
+    phone = Column(String, default="")
     notes = Column(Text, default="")
     events = relationship("Event", secondary=event_service, back_populates="services")
 
@@ -54,6 +59,7 @@ class Format(Base):
     __tablename__ = "formats"
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=True, nullable=False)
+    description = Column(Text, default="")
     notes = Column(Text, default="")
     events = relationship("Event", back_populates="format")
 
@@ -62,6 +68,9 @@ class Promoter(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=True, nullable=False)
     contact = Column(String, default="")
+    phone = Column(String, default="")
+    email = Column(String, default="")
+    notes = Column(Text, default="")
     events = relationship("Event", back_populates="promoter")
 
 class TourManager(Base):
@@ -69,4 +78,7 @@ class TourManager(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=True, nullable=False)
     contact = Column(String, default="")
+    phone = Column(String, default="")
+    email = Column(String, default="")
+    notes = Column(Text, default="")
     events = relationship("Event", back_populates="tour_manager")
