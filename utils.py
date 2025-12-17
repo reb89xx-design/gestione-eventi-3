@@ -799,3 +799,58 @@ def events_without_promoter(start_date: date, end_date: date) -> List[Event]:
         return db.query(Event).filter(Event.date >= start_date, Event.date <= end_date, (Event.promoter_id == None)).order_by(Event.date).all()
     finally:
         db.close()
+# PROMOTER / TOUR MANAGER - funzioni CRUD per promoter (aggiungi in utils.py)
+def add_promoter(name: str, contact: str = "", phone: str = "", email: str = "", notes: str = "") -> Promoter:
+    """
+    Crea un nuovo promoter e registra l'audit.
+    """
+    db = get_session()
+    try:
+        p = Promoter(name=name.strip(), contact=contact.strip(), phone=phone.strip(), email=email.strip(), notes=notes)
+        db.add(p)
+        db.commit()
+        db.refresh(p)
+        record_audit("promoter", p.id, "create", {"name": p.name})
+        return p
+    except SQLAlchemyError:
+        db.rollback()
+        raise
+    finally:
+        db.close()
+
+def update_promoter(promoter_id: int, **fields) -> Optional[Promoter]:
+    """
+    Aggiorna un promoter esistente. Restituisce l'oggetto aggiornato o None se non trovato.
+    """
+    db = get_session()
+    try:
+        p = db.query(Promoter).get(promoter_id)
+        if not p:
+            return None
+        before = {k: getattr(p, k) for k in fields.keys() if hasattr(p, k)}
+        for k, v in fields.items():
+            if hasattr(p, k):
+                setattr(p, k, v)
+        db.commit()
+        db.refresh(p)
+        record_audit("promoter", promoter_id, "update", {"before": before, "after": fields})
+        return p
+    finally:
+        db.close()
+
+def delete_promoter(promoter_id: int) -> bool:
+    """
+    Elimina un promoter e registra l'audit. Restituisce True se eliminato, False se non trovato.
+    """
+    db = get_session()
+    try:
+        p = db.query(Promoter).get(promoter_id)
+        if not p:
+            return False
+        # opzionale: verificare referenze (eventi) prima di cancellare
+        db.delete(p)
+        db.commit()
+        record_audit("promoter", promoter_id, "delete", {"id": promoter_id})
+        return True
+    finally:
+        db.close()
