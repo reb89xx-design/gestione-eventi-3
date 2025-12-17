@@ -1,8 +1,7 @@
 {
-  "test": {
-    "name": "test",
-    "email": "test",
-    "password": "test"
-  }
+  "ale": {"email": "ale@example.com", "name": "Ale"},
+  "marta": {"email": "marta@example.com", "name": "Marta"},
+  "luca": {"email": "luca@example.com", "name": "Luca"},
+  "giulia": {"email": "giulia@example.com", "name": "Giulia"},
+  "andrea": {"email": "andrea@example.com", "name": "Andrea"}
 }
-
