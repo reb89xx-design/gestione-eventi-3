@@ -854,3 +854,58 @@ def delete_promoter(promoter_id: int) -> bool:
         return True
     finally:
         db.close()
+# TOUR MANAGER - funzioni CRUD (aggiungi in utils.py)
+def add_tour_manager(name: str, contact: str = "", phone: str = "", email: str = "", notes: str = "") -> TourManager:
+    """
+    Crea un nuovo tour manager e registra l'audit.
+    """
+    db = get_session()
+    try:
+        t = TourManager(name=name.strip(), contact=contact.strip(), phone=phone.strip(), email=email.strip(), notes=notes)
+        db.add(t)
+        db.commit()
+        db.refresh(t)
+        record_audit("tour_manager", t.id, "create", {"name": t.name})
+        return t
+    except SQLAlchemyError:
+        db.rollback()
+        raise
+    finally:
+        db.close()
+
+def update_tour_manager(tour_manager_id: int, **fields) -> Optional[TourManager]:
+    """
+    Aggiorna un tour manager esistente. Restituisce l'oggetto aggiornato o None se non trovato.
+    """
+    db = get_session()
+    try:
+        t = db.query(TourManager).get(tour_manager_id)
+        if not t:
+            return None
+        before = {k: getattr(t, k) for k in fields.keys() if hasattr(t, k)}
+        for k, v in fields.items():
+            if hasattr(t, k):
+                setattr(t, k, v)
+        db.commit()
+        db.refresh(t)
+        record_audit("tour_manager", tour_manager_id, "update", {"before": before, "after": fields})
+        return t
+    finally:
+        db.close()
+
+def delete_tour_manager(tour_manager_id: int) -> bool:
+    """
+    Elimina un tour manager e registra l'audit. Restituisce True se eliminato, False se non trovato.
+    """
+    db = get_session()
+    try:
+        t = db.query(TourManager).get(tour_manager_id)
+        if not t:
+            return False
+        # opzionale: verificare referenze (eventi) prima di cancellare
+        db.delete(t)
+        db.commit()
+        record_audit("tour_manager", tour_manager_id, "delete", {"id": tour_manager_id})
+        return True
+    finally:
+        db.close()
