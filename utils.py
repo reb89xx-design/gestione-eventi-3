@@ -4,32 +4,33 @@ from models import Event, Artist, Service, Format, Promoter, TourManager
 from sqlalchemy.orm import joinedload
 from sqlalchemy.exc import SQLAlchemyError
 from datetime import date
+from typing import List, Optional
 
 # -------------------------
 # ARTISTI
 # -------------------------
-def list_artists():
+def list_artists() -> List[Artist]:
     db = get_session()
     try:
         return db.query(Artist).order_by(Artist.name).all()
     finally:
         db.close()
 
-def list_artists_by_role(role):
+def list_artists_by_role(role: str) -> List[Artist]:
     db = get_session()
     try:
         return db.query(Artist).filter(Artist.role == role).order_by(Artist.name).all()
     finally:
         db.close()
 
-def get_artist(artist_id):
+def get_artist(artist_id: int) -> Optional[Artist]:
     db = get_session()
     try:
         return db.query(Artist).filter(Artist.id == artist_id).first()
     finally:
         db.close()
 
-def add_artist(name, role="artist", phone="", email="", notes=""):
+def add_artist(name: str, role: str = "artist", phone: str = "", email: str = "", notes: str = "") -> Artist:
     db = get_session()
     try:
         a = Artist(name=name.strip(), role=role, phone=phone.strip(), email=email.strip(), notes=notes)
@@ -43,7 +44,7 @@ def add_artist(name, role="artist", phone="", email="", notes=""):
     finally:
         db.close()
 
-def update_artist(artist_id, **fields):
+def update_artist(artist_id: int, **fields) -> Optional[Artist]:
     db = get_session()
     try:
         a = db.query(Artist).get(artist_id)
@@ -58,7 +59,7 @@ def update_artist(artist_id, **fields):
     finally:
         db.close()
 
-def delete_artist(artist_id):
+def delete_artist(artist_id: int) -> bool:
     db = get_session()
     try:
         a = db.query(Artist).get(artist_id)
@@ -73,21 +74,21 @@ def delete_artist(artist_id):
 # -------------------------
 # SERVICES
 # -------------------------
-def list_services():
+def list_services() -> List[Service]:
     db = get_session()
     try:
         return db.query(Service).order_by(Service.name).all()
     finally:
         db.close()
 
-def get_service(service_id):
+def get_service(service_id: int) -> Optional[Service]:
     db = get_session()
     try:
         return db.query(Service).filter(Service.id == service_id).first()
     finally:
         db.close()
 
-def add_service(name, contact="", phone="", notes=""):
+def add_service(name: str, contact: str = "", phone: str = "", notes: str = "") -> Service:
     db = get_session()
     try:
         s = Service(name=name.strip(), contact=contact.strip(), phone=phone.strip(), notes=notes)
@@ -98,7 +99,7 @@ def add_service(name, contact="", phone="", notes=""):
     finally:
         db.close()
 
-def update_service(service_id, **fields):
+def update_service(service_id: int, **fields) -> Optional[Service]:
     db = get_session()
     try:
         s = db.query(Service).get(service_id)
@@ -113,7 +114,7 @@ def update_service(service_id, **fields):
     finally:
         db.close()
 
-def delete_service(service_id):
+def delete_service(service_id: int) -> bool:
     db = get_session()
     try:
         s = db.query(Service).get(service_id)
@@ -128,21 +129,21 @@ def delete_service(service_id):
 # -------------------------
 # FORMATS
 # -------------------------
-def list_formats():
+def list_formats() -> List[Format]:
     db = get_session()
     try:
         return db.query(Format).order_by(Format.name).all()
     finally:
         db.close()
 
-def get_format(format_id):
+def get_format(format_id: int) -> Optional[Format]:
     db = get_session()
     try:
         return db.query(Format).filter(Format.id == format_id).first()
     finally:
         db.close()
 
-def add_format(name, description="", notes=""):
+def add_format(name: str, description: str = "", notes: str = "") -> Format:
     db = get_session()
     try:
         f = Format(name=name.strip(), description=description, notes=notes)
@@ -153,7 +154,7 @@ def add_format(name, description="", notes=""):
     finally:
         db.close()
 
-def update_format(format_id, **fields):
+def update_format(format_id: int, **fields) -> Optional[Format]:
     db = get_session()
     try:
         f = db.query(Format).get(format_id)
@@ -168,7 +169,7 @@ def update_format(format_id, **fields):
     finally:
         db.close()
 
-def delete_format(format_id):
+def delete_format(format_id: int) -> bool:
     db = get_session()
     try:
         f = db.query(Format).get(format_id)
@@ -183,21 +184,21 @@ def delete_format(format_id):
 # -------------------------
 # PROMOTER
 # -------------------------
-def list_promoters():
+def list_promoters() -> List[Promoter]:
     db = get_session()
     try:
         return db.query(Promoter).order_by(Promoter.name).all()
     finally:
         db.close()
 
-def get_promoter(promoter_id):
+def get_promoter(promoter_id: int) -> Optional[Promoter]:
     db = get_session()
     try:
         return db.query(Promoter).filter(Promoter.id == promoter_id).first()
     finally:
         db.close()
 
-def add_promoter(name, contact="", phone="", email="", notes=""):
+def add_promoter(name: str, contact: str = "", phone: str = "", email: str = "", notes: str = "") -> Promoter:
     db = get_session()
     try:
         p = Promoter(name=name.strip(), contact=contact.strip(), phone=phone.strip(), email=email.strip(), notes=notes)
@@ -208,7 +209,7 @@ def add_promoter(name, contact="", phone="", email="", notes=""):
     finally:
         db.close()
 
-def update_promoter(promoter_id, **fields):
+def update_promoter(promoter_id: int, **fields) -> Optional[Promoter]:
     db = get_session()
     try:
         p = db.query(Promoter).get(promoter_id)
@@ -223,7 +224,7 @@ def update_promoter(promoter_id, **fields):
     finally:
         db.close()
 
-def delete_promoter(promoter_id):
+def delete_promoter(promoter_id: int) -> bool:
     db = get_session()
     try:
         p = db.query(Promoter).get(promoter_id)
@@ -238,21 +239,21 @@ def delete_promoter(promoter_id):
 # -------------------------
 # TOUR MANAGER
 # -------------------------
-def list_tour_managers():
+def list_tour_managers() -> List[TourManager]:
     db = get_session()
     try:
         return db.query(TourManager).order_by(TourManager.name).all()
     finally:
         db.close()
 
-def get_tour_manager(tm_id):
+def get_tour_manager(tm_id: int) -> Optional[TourManager]:
     db = get_session()
     try:
         return db.query(TourManager).filter(TourManager.id == tm_id).first()
     finally:
         db.close()
 
-def add_tour_manager(name, contact="", phone="", email="", notes=""):
+def add_tour_manager(name: str, contact: str = "", phone: str = "", email: str = "", notes: str = "") -> TourManager:
     db = get_session()
     try:
         t = TourManager(name=name.strip(), contact=contact.strip(), phone=phone.strip(), email=email.strip(), notes=notes)
@@ -263,7 +264,7 @@ def add_tour_manager(name, contact="", phone="", email="", notes=""):
     finally:
         db.close()
 
-def update_tour_manager(tm_id, **fields):
+def update_tour_manager(tm_id: int, **fields) -> Optional[TourManager]:
     db = get_session()
     try:
         t = db.query(TourManager).get(tm_id)
@@ -278,7 +279,7 @@ def update_tour_manager(tm_id, **fields):
     finally:
         db.close()
 
-def delete_tour_manager(tm_id):
+def delete_tour_manager(tm_id: int) -> bool:
     db = get_session()
     try:
         t = db.query(TourManager).get(tm_id)
@@ -293,30 +294,30 @@ def delete_tour_manager(tm_id):
 # -------------------------
 # EVENTI
 # -------------------------
-def list_events_by_date(target_date):
+def list_events_by_date(target_date: date) -> List[Event]:
     db = get_session()
     try:
         return db.query(Event).filter(Event.date == target_date).options(joinedload(Event.artists), joinedload(Event.services)).order_by(Event.id).all()
     finally:
         db.close()
 
-def get_event(event_id):
+def list_events_range(start_date: date, end_date: date) -> List[Event]:
+    db = get_session()
+    try:
+        return db.query(Event).filter(Event.date >= start_date, Event.date <= end_date).options(joinedload(Event.artists), joinedload(Event.services)).order_by(Event.date).all()
+    finally:
+        db.close()
+
+def get_event(event_id: int) -> Optional[Event]:
+    if not event_id:
+        return None
     db = get_session()
     try:
         return db.query(Event).options(joinedload(Event.artists), joinedload(Event.services)).filter(Event.id == event_id).first()
     finally:
         db.close()
 
-def save_event(data):
-    """
-    data: dict con campi:
-      id (opz), date (datetime.date), title, location, type,
-      format_id, promoter_id, tour_manager_id, status, notes,
-      van, travel, hotel, allestimenti, facchini,
-      payments_acconto (float), payments_saldo (float),
-      dj_id, vocalist_id, ballerine_ids (list), mascotte_ids (list),
-      artist_ids (list), service_ids (list)
-    """
+def save_event(data: dict) -> Optional[Event]:
     db = get_session()
     try:
         if data.get("id"):
@@ -328,34 +329,55 @@ def save_event(data):
             db.add(ev)
 
         # campi base
-        ev.title = data.get("title", ev.title)
-        ev.date = data.get("date", ev.date)
-        ev.location = data.get("location", ev.location)
-        ev.type = data.get("type", ev.type or "artist")
-        ev.format_id = data.get("format_id", ev.format_id)
-        ev.promoter_id = data.get("promoter_id", ev.promoter_id)
-        ev.tour_manager_id = data.get("tour_manager_id", ev.tour_manager_id)
-        ev.status = data.get("status", ev.status)
-        ev.notes = data.get("notes", ev.notes)
+        if "title" in data:
+            ev.title = data.get("title", ev.title)
+        if "date" in data:
+            ev.date = data.get("date", ev.date)
+        if "location" in data:
+            ev.location = data.get("location", ev.location)
+        if "type" in data:
+            ev.type = data.get("type", ev.type or "artist")
+        if "format_id" in data:
+            ev.format_id = data.get("format_id", ev.format_id)
+        if "promoter_id" in data:
+            ev.promoter_id = data.get("promoter_id", ev.promoter_id)
+        if "tour_manager_id" in data:
+            ev.tour_manager_id = data.get("tour_manager_id", ev.tour_manager_id)
+        if "status" in data:
+            ev.status = data.get("status", ev.status)
+        if "notes" in data:
+            ev.notes = data.get("notes", ev.notes)
 
         # campi estesi
-        ev.van = data.get("van", ev.van)
-        ev.travel = data.get("travel", ev.travel)
-        ev.hotel = data.get("hotel", ev.hotel)
-        ev.allestimenti = data.get("allestimenti", ev.allestimenti)
-        ev.facchini = data.get("facchini", ev.facchini)
-        acconto = data.get("payments_acconto")
-        saldo = data.get("payments_saldo")
-        ev.payments_acconto = float(acconto) if acconto not in (None, "") else None
-        ev.payments_saldo = float(saldo) if saldo not in (None, "") else None
+        if "van" in data:
+            ev.van = data.get("van", ev.van)
+        if "travel" in data:
+            ev.travel = data.get("travel", ev.travel)
+        if "hotel" in data:
+            ev.hotel = data.get("hotel", ev.hotel)
+        if "allestimenti" in data:
+            ev.allestimenti = data.get("allestimenti", ev.allestimenti)
+        if "facchini" in data:
+            ev.facchini = data.get("facchini", ev.facchini)
+
+        if "payments_acconto" in data:
+            acconto = data.get("payments_acconto")
+            ev.payments_acconto = float(acconto) if acconto not in (None, "") else None
+        if "payments_saldo" in data:
+            saldo = data.get("payments_saldo")
+            ev.payments_saldo = float(saldo) if saldo not in (None, "") else None
 
         # format-specific selections
-        ev.dj_id = data.get("dj_id", ev.dj_id)
-        ev.vocalist_id = data.get("vocalist_id", ev.vocalist_id)
-        ballerine = data.get("ballerine_ids", [])
-        mascotte = data.get("mascotte_ids", [])
-        ev.ballerine_ids = ",".join(str(x) for x in ballerine) if ballerine else ""
-        ev.mascotte_ids = ",".join(str(x) for x in mascotte) if mascotte else ""
+        if "dj_id" in data:
+            ev.dj_id = data.get("dj_id", ev.dj_id)
+        if "vocalist_id" in data:
+            ev.vocalist_id = data.get("vocalist_id", ev.vocalist_id)
+        if "ballerine_ids" in data:
+            ballerine = data.get("ballerine_ids", [])
+            ev.ballerine_ids = ",".join(str(x) for x in ballerine) if ballerine else ""
+        if "mascotte_ids" in data:
+            mascotte = data.get("mascotte_ids", [])
+            ev.mascotte_ids = ",".join(str(x) for x in mascotte) if mascotte else ""
 
         # artists many-to-many
         if "artist_ids" in data:
@@ -381,3 +403,68 @@ def save_event(data):
         raise
     finally:
         db.close()
+
+def duplicate_event(event_id: int) -> Optional[Event]:
+    db = get_session()
+    try:
+        ev = db.query(Event).get(event_id)
+        if not ev:
+            return None
+        new = Event(
+            date=ev.date,
+            title=f"{ev.title} (Copia)",
+            location=ev.location,
+            type=ev.type,
+            format_id=ev.format_id,
+            promoter_id=ev.promoter_id,
+            tour_manager_id=ev.tour_manager_id,
+            status="bozza",
+            notes=ev.notes,
+            van=ev.van,
+            travel=ev.travel,
+            hotel=ev.hotel,
+            allestimenti=ev.allestimenti,
+            facchini=ev.facchini,
+            payments_acconto=ev.payments_acconto,
+            payments_saldo=ev.payments_saldo,
+            dj_id=ev.dj_id,
+            vocalist_id=ev.vocalist_id,
+            ballerine_ids=ev.ballerine_ids,
+            mascotte_ids=ev.mascotte_ids
+        )
+        for a in ev.artists:
+            new.artists.append(a)
+        for s in ev.services:
+            new.services.append(s)
+        db.add(new)
+        db.commit()
+        db.refresh(new)
+        return new
+    finally:
+        db.close()
+
+def delete_event(event_id: int) -> bool:
+    db = get_session()
+    try:
+        ev = db.query(Event).get(event_id)
+        if not ev:
+            return False
+        db.delete(ev)
+        db.commit()
+        return True
+    finally:
+        db.close()
+
+# -------------------------
+# UTILITY / FILTRI
+# -------------------------
+def filter_events_by_artist(events: List[Event], artist_id: int) -> List[Event]:
+    return [e for e in events if any(a.id == artist_id for a in e.artists)]
+
+def filter_events(events: List[Event], *, type_: Optional[str] = None, status: Optional[str] = None) -> List[Event]:
+    res = events
+    if type_:
+        res = [e for e in res if e.type == type_]
+    if status:
+        res = [e for e in res if e.status == status]
+    return res
