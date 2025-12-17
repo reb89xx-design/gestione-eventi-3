@@ -1,7 +1,32 @@
 {
-  "ale": {"email": "ale@example.com", "name": "Ale"},
-  "marta": {"email": "marta@example.com", "name": "Marta"},
-  "luca": {"email": "luca@example.com", "name": "Luca"},
-  "giulia": {"email": "giulia@example.com", "name": "Giulia"},
-  "andrea": {"email": "andrea@example.com", "name": "Andrea"}
+  "ale": {
+    "email": "ale@example.com",
+    "name": "Ale",
+    "password": "TestPass123!",
+    "role": "admin"
+  },
+  "marta": {
+    "email": "marta@example.com",
+    "name": "Marta",
+    "password": "MartaPass1!",
+    "role": "manager"
+  },
+  "luca": {
+    "email": "luca@example.com",
+    "name": "Luca",
+    "password": "LucaPass1!",
+    "role": "tour_manager"
+  },
+  "giulia": {
+    "email": "giulia@example.com",
+    "name": "Giulia",
+    "password": "GiuliaPass1!",
+    "role": "operator"
+  },
+  "andrea": {
+    "email": "andrea@example.com",
+    "name": "Andrea",
+    "password": "AndreaPass1!",
+    "role": "operator"
+  }
 }
