@@ -1,0 +1,29 @@
+{
+  "artists": [
+    {
+      "id": 1,
+      "name": "Demo Artist",
+      "role": "artist",
+      "phone": "+39 333 000000",
+      "email": "demo@example.com",
+      "notes": "seed"
+    }
+  ],
+  "formats": [
+    {
+      "id": 1,
+      "name": "DJ Set",
+      "description": "Format breve",
+      "notes": ""
+    }
+  ],
+  "tour_managers": [
+    {
+      "id": 1,
+      "name": "Luca Rossi",
+      "contact": "luca@example.com",
+      "phone": "+39 333 111111",
+      "notes": ""
+    }
+  ]
+}
