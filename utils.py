@@ -188,6 +188,36 @@ def add_format(name: str, description: str = "", notes: str = "") -> Format:
     finally:
         db.close()
 
+def update_format(format_id: int, **fields) -> Optional[Format]:
+    db = get_session()
+    try:
+        f = db.query(Format).get(format_id)
+        if not f:
+            return None
+        before = {k: getattr(f, k) for k in fields.keys() if hasattr(f, k)}
+        for k, v in fields.items():
+            if hasattr(f, k):
+                setattr(f, k, v)
+        db.commit()
+        db.refresh(f)
+        record_audit("format", format_id, "update", {"before": before, "after": fields})
+        return f
+    finally:
+        db.close()
+
+def delete_format(format_id: int) -> bool:
+    db = get_session()
+    try:
+        f = db.query(Format).get(format_id)
+        if not f:
+            return False
+        db.delete(f)
+        db.commit()
+        record_audit("format", format_id, "delete", {"id": format_id})
+        return True
+    finally:
+        db.close()
+
 # -------------------------
 # PROMOTER / TOUR MANAGER
 # -------------------------
@@ -549,6 +579,21 @@ def toggle_task_done(task_id: int, user: str = "") -> Optional[Task]:
     finally:
         db.close()
 
+def get_user_tasks(username: str, only_open: bool = True) -> List[Task]:
+    """
+    Restituisce le task assegnate a un utente.
+    - username: stringa che identifica l'assignee (es. username o email).
+    - only_open: se True ritorna solo le task non completate.
+    """
+    db = get_session()
+    try:
+        q = db.query(Task).filter(Task.assignee == username)
+        if only_open:
+            q = q.filter(Task.done == False)
+        return q.order_by(Task.due_date, Task.created_at).all()
+    finally:
+        db.close()
+
 # -------------------------
 # TEMPLATES E CHECKLIST
 # -------------------------
@@ -583,6 +628,56 @@ def apply_template_to_event(event_id: int, template_name: str, user: str = ""):
         for c in created:
             db.refresh(c)
             record_audit("task", c.id, "create_from_template", {"template": template_name, "event_id": event_id}, user=user)
+        return created
+    finally:
+        db.close()
+
+# compatibilità: create_tasks_from_template wrapper
+def create_tasks_from_template(event_id: int, template_name: str, assignee: str = "", due_date: Optional[date] = None, user: str = "") -> List[Task]:
+    """
+    Wrapper compatibile con chiamate esistenti.
+    - Se esistono TaskTemplate per template_name usa apply_template_to_event.
+    - Altrimenti crea tasks da un fallback minimale.
+    """
+    try:
+        templates = list_task_templates_for(template_name)
+    except Exception:
+        templates = []
+
+    if templates:
+        return apply_template_to_event(event_id, template_name, user=user)
+
+    FALLBACK_TEMPLATES = {
+        "format_checklist": [
+            {"title": "Confermare DJ", "description": "Verificare disponibilità e rider", "offset_days": -7},
+            {"title": "Confermare Vocalist", "description": "Contattare vocalist e confermare set", "offset_days": -7},
+            {"title": "Allestimenti", "description": "Verificare palco e luci", "offset_days": -3},
+            {"title": "Hotel", "description": "Controllare prenotazioni hotel", "offset_days": -3}
+        ],
+        "artist_checklist": [
+            {"title": "Rider tecnico", "description": "Inviare e confermare rider", "offset_days": -7},
+            {"title": "Facchini", "description": "Confermare numero facchini", "offset_days": -3},
+            {"title": "Trasporti", "description": "Organizzare van e viaggi", "offset_days": -2}
+        ]
+    }
+
+    items = FALLBACK_TEMPLATES.get(template_name, [])
+    db = get_session()
+    created = []
+    try:
+        ev = db.query(Event).get(event_id)
+        if not ev:
+            return []
+        for it in items:
+            offset = it.get("offset_days", 0)
+            due = (ev.date + timedelta(days=offset)) if ev.date else due_date
+            t = Task(event_id=event_id, title=it["title"], description=it.get("description",""), assignee=assignee, due_date=due)
+            db.add(t)
+            created.append(t)
+        db.commit()
+        for t in created:
+            db.refresh(t)
+            record_audit("task", t.id, "create_from_fallback_template", {"template": template_name, "event_id": event_id}, user=user)
         return created
     finally:
         db.close()
@@ -702,57 +797,5 @@ def events_without_promoter(start_date: date, end_date: date) -> List[Event]:
     db = get_session()
     try:
         return db.query(Event).filter(Event.date >= start_date, Event.date <= end_date, (Event.promoter_id == None)).order_by(Event.date).all()
-    finally:
-        db.close()
-# compatibilità: create_tasks_from_template wrapper (aggiungi in utils.py)
-def create_tasks_from_template(event_id: int, template_name: str, assignee: str = "", due_date: Optional[date] = None, user: str = "") -> List[Task]:
-    """
-    Wrapper compatibile con chiamate esistenti.
-    - Se esistono TaskTemplate per template_name usa apply_template_to_event.
-    - Altrimenti crea tasks da un fallback minimale.
-    """
-    # prova a usare i template DB
-    try:
-        templates = list_task_templates_for(template_name)
-    except Exception:
-        templates = []
-
-    if templates:
-        # apply_template_to_event gestisce audit e ritorna la lista di Task creati
-        return apply_template_to_event(event_id, template_name, user=user)
-
-    # fallback statico se non ci sono template nel DB
-    FALLBACK_TEMPLATES = {
-        "format_checklist": [
-            {"title": "Confermare DJ", "description": "Verificare disponibilità e rider", "offset_days": -7},
-            {"title": "Confermare Vocalist", "description": "Contattare vocalist e confermare set", "offset_days": -7},
-            {"title": "Allestimenti", "description": "Verificare palco e luci", "offset_days": -3},
-            {"title": "Hotel", "description": "Controllare prenotazioni hotel", "offset_days": -3}
-        ],
-        "artist_checklist": [
-            {"title": "Rider tecnico", "description": "Inviare e confermare rider", "offset_days": -7},
-            {"title": "Facchini", "description": "Confermare numero facchini", "offset_days": -3},
-            {"title": "Trasporti", "description": "Organizzare van e viaggi", "offset_days": -2}
-        ]
-    }
-
-    items = FALLBACK_TEMPLATES.get(template_name, [])
-    db = get_session()
-    created = []
-    try:
-        ev = db.query(Event).get(event_id)
-        if not ev:
-            return []
-        for it in items:
-            offset = it.get("offset_days", 0)
-            due = (ev.date + timedelta(days=offset)) if ev.date else due_date
-            t = Task(event_id=event_id, title=it["title"], description=it.get("description",""), assignee=assignee, due_date=due)
-            db.add(t)
-            created.append(t)
-        db.commit()
-        for t in created:
-            db.refresh(t)
-            record_audit("task", t.id, "create_from_fallback_template", {"template": template_name, "event_id": event_id}, user=user)
-        return created
     finally:
         db.close()
