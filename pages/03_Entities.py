@@ -11,7 +11,7 @@ from utils import (
 st.set_page_config(page_title="Entità - Agency Planner", layout="wide")
 st.header("Gestione entità")
 
-tabs = st.tabs(["Artisti","Format","Service","Promoter","Tour Manager"])
+tabs = st.tabs(["Artisti", "Format", "Service", "Promoter", "Tour Manager"])
 
 #### ARTISTI
 with tabs[0]:
@@ -19,7 +19,10 @@ with tabs[0]:
     with st.expander("Aggiungi nuovo artista / performer"):
         with st.form("add_artist_form"):
             name = st.text_input("Nome")
-            role = st.selectbox("Ruolo", ["artist","mascotte","vocalist","ballerina","dancer","other"])
+            role = st.selectbox(
+                "Ruolo",
+                ["artist", "mascotte", "vocalist", "ballerina", "dancer", "other"]
+            )
             phone = st.text_input("Telefono")
             email = st.text_input("Email")
             notes = st.text_area("Note")
@@ -30,11 +33,12 @@ with tabs[0]:
                 else:
                     add_artist(name=name, role=role, phone=phone, email=email, notes=notes)
                     st.success("Artista aggiunto")
+
     st.markdown("---")
     st.subheader("Lista artisti")
     artists = list_artists()
     for a in artists:
-        cols = st.columns([3,1,1,1])
+        cols = st.columns([3, 1, 1, 1])
         with cols[0]:
             st.markdown(f"**{a.name}**  —  _{a.role}_")
             st.write(f"Email: {a.email}  •  Tel: {a.phone}")
@@ -56,17 +60,15 @@ with tabs[0]:
     # Modifica artista (se selezionato)
     if st.session_state.get("edit_artist_id"):
         aid = st.session_state["edit_artist_id"]
-        artist = None
-        for x in artists:
-            if x.id == aid:
-                artist = x
-                break
+        artist = next((x for x in artists if x.id == aid), None)
         if artist:
             st.markdown("---")
             st.subheader(f"Modifica artista: {artist.name}")
             with st.form("edit_artist_form"):
                 name = st.text_input("Nome", value=artist.name)
-                role = st.selectbox("Ruolo", ["artist","mascotte","vocalist","ballerina","dancer","other"], index=["artist","mascotte","vocalist","ballerina","dancer","other"].index(artist.role if artist.role in ["artist","mascotte","vocalist","ballerina","dancer","other"] else "other"))
+                role_options = ["artist", "mascotte", "vocalist", "ballerina", "dancer", "other"]
+                default_index = role_options.index(artist.role) if artist.role in role_options else len(role_options) - 1
+                role = st.selectbox("Ruolo", role_options, index=default_index)
                 phone = st.text_input("Telefono", value=artist.phone)
                 email = st.text_input("Email", value=artist.email)
                 notes = st.text_area("Note", value=artist.notes)
@@ -92,11 +94,12 @@ with tabs[1]:
                 else:
                     add_format(name=name, description=description, notes=notes)
                     st.success("Format aggiunto")
+
     st.markdown("---")
     st.subheader("Lista format")
     formats = list_formats()
     for f in formats:
-        cols = st.columns([3,1,1])
+        cols = st.columns([3, 1, 1])
         with cols[0]:
             st.markdown(f"**{f.name}**")
             st.write(f.description or "")
@@ -144,11 +147,12 @@ with tabs[2]:
                 else:
                     add_service(name=name, contact=contact, phone=phone, notes=notes)
                     st.success("Service aggiunto")
+
     st.markdown("---")
     st.subheader("Lista service")
     services = list_services()
     for s in services:
-        cols = st.columns([3,1,1])
+        cols = st.columns([3, 1, 1])
         with cols[0]:
             st.markdown(f"**{s.name}**")
             st.write(f"Contatto: {s.contact}  •  Tel: {s.phone}")
@@ -198,11 +202,12 @@ with tabs[3]:
                 else:
                     add_promoter(name=name, contact=contact, phone=phone, email=email, notes=notes)
                     st.success("Promoter aggiunto")
+
     st.markdown("---")
     st.subheader("Lista promoter")
     promoters = list_promoters()
     for p in promoters:
-        cols = st.columns([3,1,1])
+        cols = st.columns([3, 1, 1])
         with cols[0]:
             st.markdown(f"**{p.name}**")
             st.write(f"Contatto: {p.contact}  •  Tel: {p.phone}  •  Email: {p.email}")
@@ -248,3 +253,46 @@ with tabs[4]:
             notes = st.text_area("Note")
             submitted = st.form_submit_button("Aggiungi tour manager")
             if submitted:
+                if not name.strip():
+                    st.error("Inserisci il nome")
+                else:
+                    add_tour_manager(name=name, contact=contact, phone=phone, email=email, notes=notes)
+                    st.success("Tour manager aggiunto")
+
+    st.markdown("---")
+    st.subheader("Lista tour manager")
+    tms = list_tour_managers()
+    for t in tms:
+        cols = st.columns([3, 1, 1])
+        with cols[0]:
+            st.markdown(f"**{t.name}**")
+            st.write(f"Contatto: {t.contact}  •  Tel: {t.phone}  •  Email: {t.email}")
+            st.write(t.notes or "")
+        with cols[1]:
+            if st.button("Modifica", key=f"edit_tm_{t.id}"):
+                st.session_state["edit_tm_id"] = t.id
+                st.experimental_rerun()
+        with cols[2]:
+            if st.button("Elimina", key=f"del_tm_{t.id}"):
+                delete_tour_manager(t.id)
+                st.success("Tour manager eliminato")
+                st.experimental_rerun()
+
+    if st.session_state.get("edit_tm_id"):
+        tid = st.session_state["edit_tm_id"]
+        tm = next((x for x in tms if x.id == tid), None)
+        if tm:
+            st.markdown("---")
+            st.subheader(f"Modifica tour manager: {tm.name}")
+            with st.form("edit_tm_form"):
+                name = st.text_input("Nome", value=tm.name)
+                contact = st.text_input("Contatto", value=tm.contact)
+                phone = st.text_input("Telefono", value=tm.phone)
+                email = st.text_input("Email", value=tm.email)
+                notes = st.text_area("Note", value=tm.notes)
+                submitted = st.form_submit_button("Salva tour manager")
+                if submitted:
+                    update_tour_manager(tm.id, name=name, contact=contact, phone=phone, email=email, notes=notes)
+                    st.success("Tour manager aggiornato")
+                    del st.session_state["edit_tm_id"]
+                    st.experimental_rerun()
