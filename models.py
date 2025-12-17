@@ -1,5 +1,5 @@
 # models.py
-from sqlalchemy import Column, Integer, String, Date, Table, ForeignKey, Text
+from sqlalchemy import Column, Integer, String, Date, Table, ForeignKey, Text, Float
 from sqlalchemy.orm import declarative_base, relationship
 
 Base = declarative_base()
@@ -22,13 +22,29 @@ class Event(Base):
     __tablename__ = "events"
     id = Column(Integer, primary_key=True, index=True)
     date = Column(Date, nullable=False, index=True)
-    title = Column(String, nullable=False)
+    title = Column(String, nullable=False, default="")
     location = Column(String, default="")
+    type = Column(String, default="artist")  # "artist" or "format"
     format_id = Column(Integer, ForeignKey("formats.id"), nullable=True)
     promoter_id = Column(Integer, ForeignKey("promoters.id"), nullable=True)
     tour_manager_id = Column(Integer, ForeignKey("tour_managers.id"), nullable=True)
     status = Column(String, default="bozza")
     notes = Column(Text, default="")
+
+    # Fields common / specific
+    van = Column(String, default="")
+    travel = Column(String, default="")      # viaggi
+    hotel = Column(String, default="")
+    allestimenti = Column(Text, default="")
+    facchini = Column(String, default="")    # per artista
+    payments_acconto = Column(Float, nullable=True)
+    payments_saldo = Column(Float, nullable=True)
+
+    # For format-specific roles (store selected artist ids as comma-separated strings for simplicity)
+    dj_id = Column(Integer, nullable=True)
+    vocalist_id = Column(Integer, nullable=True)
+    ballerine_ids = Column(String, default="")   # comma separated ids
+    mascotte_ids = Column(String, default="")    # comma separated ids
 
     artists = relationship("Artist", secondary=event_artist, back_populates="events")
     services = relationship("Service", secondary=event_service, back_populates="events")
@@ -40,7 +56,7 @@ class Artist(Base):
     __tablename__ = "artists"
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=True, nullable=False)
-    role = Column(String, default="artist")   # es: artist, mascot, vocalist, dancer
+    role = Column(String, default="artist")   # es: artist, dj, mascot, vocalist, ballerina, dancer
     phone = Column(String, default="")
     email = Column(String, default="")
     notes = Column(Text, default="")
