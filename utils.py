@@ -11,7 +11,17 @@ from datetime import date, datetime, timedelta
 from typing import List, Optional, Dict, Any
 import json
 import os
-
+# debug wrapper (temporaneo)
+def add_artist_debug(name: str, role: str = "artist", phone: str = "", email: str = "", notes: str = ""):
+    from sqlalchemy.exc import SQLAlchemyError
+    try:
+        return add_artist(name=name, role=role, phone=phone, email=email, notes=notes)
+    except SQLAlchemyError as e:
+        # stampa l'errore DBAPI sottostante
+        print("SQLAlchemyError:", e)
+        if hasattr(e, "orig"):
+            print("DBAPI error:", e.orig)
+        raise
 # -------------------------
 # HELPERS GENERICI
 # -------------------------
