@@ -1,6 +1,7 @@
 # models.py
-from sqlalchemy import Column, Integer, String, Date, Table, ForeignKey, Text, Float
+from sqlalchemy import Column, Integer, String, Date, Table, ForeignKey, Text, Float, DateTime, Boolean
 from sqlalchemy.orm import declarative_base, relationship
+from datetime import datetime
 
 Base = declarative_base()
 
@@ -31,7 +32,6 @@ class Event(Base):
     status = Column(String, default="bozza")
     notes = Column(Text, default="")
 
-    # Fields common / specific
     van = Column(String, default="")
     travel = Column(String, default="")      # viaggi
     hotel = Column(String, default="")
@@ -40,7 +40,6 @@ class Event(Base):
     payments_acconto = Column(Float, nullable=True)
     payments_saldo = Column(Float, nullable=True)
 
-    # For format-specific roles (store selected artist ids as comma-separated strings for simplicity)
     dj_id = Column(Integer, nullable=True)
     vocalist_id = Column(Integer, nullable=True)
     ballerine_ids = Column(String, default="")   # comma separated ids
@@ -98,3 +97,16 @@ class TourManager(Base):
     email = Column(String, default="")
     notes = Column(Text, default="")
     events = relationship("Event", back_populates="tour_manager")
+
+class Task(Base):
+    __tablename__ = "tasks"
+    id = Column(Integer, primary_key=True, index=True)
+    event_id = Column(Integer, ForeignKey("events.id"), nullable=False, index=True)
+    title = Column(String, nullable=False)
+    description = Column(Text, default="")
+    assignee = Column(String, default="")   # nome o username del membro del team
+    due_date = Column(Date, nullable=True)
+    done = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    event = relationship("Event", backref="tasks")

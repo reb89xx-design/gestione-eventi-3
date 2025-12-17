@@ -10,16 +10,13 @@ from utils import (
 st.set_page_config(page_title="Scheda Evento", layout="wide")
 st.header("Creazione / Modifica Evento")
 
-# Carica evento aperto (se presente nello stato)
 event_id = st.session_state.get("open_event_id", None)
 ev = get_event(event_id) if event_id else None
 
-# Tipo evento: format o artist
 default_type = ev.type if ev else "format"
 type_index = 0 if default_type == "format" else 1
 event_type = st.radio("Tipo evento", options=["format", "artist"], index=type_index, horizontal=True)
 
-# Layout form
 with st.form("event_form", clear_on_submit=False):
     left, right = st.columns([2, 1])
 
@@ -28,7 +25,6 @@ with st.form("event_form", clear_on_submit=False):
         ev_date = st.date_input("Data", value=ev.date if ev else date.today())
         location = st.text_input("Luogo", value=ev.location if ev else "")
 
-        # Services multiselect
         services = list_services()
         service_map = {s.id: s.name for s in services}
         default_services = [s.id for s in ev.services] if ev and ev.services else []
@@ -70,7 +66,6 @@ with st.form("event_form", clear_on_submit=False):
 
     st.markdown("---")
 
-    # Campi specifici per tipo
     if event_type == "format":
         st.subheader("Campi specifici per FORMAT")
         djs = list_artists_by_role("dj")
@@ -106,7 +101,6 @@ with st.form("event_form", clear_on_submit=False):
     st.markdown("---")
     status = st.selectbox("Stato evento", options=["bozza", "confermato", "cancellato"], index=0 if not ev else ["bozza", "confermato", "cancellato"].index(ev.status if ev.status in ["bozza", "confermato", "cancellato"] else "bozza"))
 
-    # Azioni inline
     col_save, col_delete, col_cancel = st.columns([1,1,1])
     with col_save:
         save_btn = st.form_submit_button("Salva evento")
@@ -115,7 +109,6 @@ with st.form("event_form", clear_on_submit=False):
     with col_cancel:
         cancel_btn = st.form_submit_button("Annulla")
 
-    # Gestione submit
     if save_btn:
         payload = {
             "id": ev.id if ev else None,
@@ -154,7 +147,6 @@ with st.form("event_form", clear_on_submit=False):
             new_ev = save_event(payload)
             if new_ev:
                 st.success("Evento salvato")
-                # pulizia stato e ritorno al calendario
                 if "open_event_id" in st.session_state:
                     st.session_state.pop("open_event_id")
                 st.experimental_rerun()
@@ -181,6 +173,5 @@ with st.form("event_form", clear_on_submit=False):
             st.session_state.pop("open_event_id")
         st.experimental_rerun()
 
-# Se non siamo nel form ma l'utente è loggato e ha aperto un evento, mostriamo un riepilogo
 if not st.session_state.get("open_event_id") and ev:
     st.info("Evento caricato. Usa il form per modificare o crea un nuovo evento dal calendario.")

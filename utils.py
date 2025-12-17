@@ -1,10 +1,11 @@
 # utils.py
 from db import get_session
-from models import Event, Artist, Service, Format, Promoter, TourManager
+from models import Event, Artist, Service, Format, Promoter, TourManager, Task
 from sqlalchemy.orm import joinedload
 from sqlalchemy.exc import SQLAlchemyError
-from datetime import date
-from typing import List, Optional
+from datetime import date, datetime
+from typing import List, Optional, Dict, Any
+import json
 
 # -------------------------
 # ARTISTI
@@ -449,6 +450,8 @@ def delete_event(event_id: int) -> bool:
         ev = db.query(Event).get(event_id)
         if not ev:
             return False
+        # elimina task legate
+        db.query(Task).filter(Task.event_id == event_id).delete()
         db.delete(ev)
         db.commit()
         return True
@@ -456,7 +459,76 @@ def delete_event(event_id: int) -> bool:
         db.close()
 
 # -------------------------
-# UTILITY / FILTRI
+# TASKS
+# -------------------------
+def list_tasks_by_date(target_date: date) -> List[Task]:
+    db = get_session()
+    try:
+        tasks = db.query(Task).filter(Task.due_date == target_date).order_by(Task.done, Task.created_at).all()
+        return tasks
+    finally:
+        db.close()
+
+def list_tasks_for_event(event_id: int) -> List[Task]:
+    db = get_session()
+    try:
+        return db.query(Task).filter(Task.event_id == event_id).order_by(Task.done, Task.created_at).all()
+    finally:
+        db.close()
+
+def add_task(event_id: int, title: str, description: str = "", assignee: str = "", due_date: Optional[date] = None) -> Task:
+    db = get_session()
+    try:
+        t = Task(event_id=event_id, title=title.strip(), description=description, assignee=assignee, due_date=due_date)
+        db.add(t)
+        db.commit()
+        db.refresh(t)
+        return t
+    finally:
+        db.close()
+
+def update_task(task_id: int, **fields) -> Optional[Task]:
+    db = get_session()
+    try:
+        t = db.query(Task).get(task_id)
+        if not t:
+            return None
+        for k, v in fields.items():
+            if hasattr(t, k):
+                setattr(t, k, v)
+        db.commit()
+        db.refresh(t)
+        return t
+    finally:
+        db.close()
+
+def delete_task(task_id: int) -> bool:
+    db = get_session()
+    try:
+        t = db.query(Task).get(task_id)
+        if not t:
+            return False
+        db.delete(t)
+        db.commit()
+        return True
+    finally:
+        db.close()
+
+def toggle_task_done(task_id: int) -> Optional[Task]:
+    db = get_session()
+    try:
+        t = db.query(Task).get(task_id)
+        if not t:
+            return None
+        t.done = not bool(t.done)
+        db.commit()
+        db.refresh(t)
+        return t
+    finally:
+        db.close()
+
+# -------------------------
+# UTILITY / FILTRI / REPORT
 # -------------------------
 def filter_events_by_artist(events: List[Event], artist_id: int) -> List[Event]:
     return [e for e in events if any(a.id == artist_id for a in e.artists)]
@@ -468,3 +540,144 @@ def filter_events(events: List[Event], *, type_: Optional[str] = None, status: O
     if status:
         res = [e for e in res if e.status == status]
     return res
+
+def events_without_dj(start_date: date, end_date: date) -> List[Event]:
+    db = get_session()
+    try:
+        return db.query(Event).filter(Event.date >= start_date, Event.date <= end_date, (Event.dj_id == None)).order_by(Event.date).all()
+    finally:
+        db.close()
+
+def events_without_promoter(start_date: date, end_date: date) -> List[Event]:
+    db = get_session()
+    try:
+        return db.query(Event).filter(Event.date >= start_date, Event.date <= end_date, (Event.promoter_id == None)).order_by(Event.date).all()
+    finally:
+        db.close()
+
+def upcoming_events(days: int = 7) -> List[Event]:
+    db = get_session()
+    try:
+        today = date.today()
+        end = date.fromordinal(today.toordinal() + days)
+        return db.query(Event).filter(Event.date >= today, Event.date <= end).order_by(Event.date).all()
+    finally:
+        db.close()
+
+def get_user_tasks(username: str, only_open: bool = True) -> List[Task]:
+    db = get_session()
+    try:
+        q = db.query(Task).filter(Task.assignee == username)
+        if only_open:
+            q = q.filter(Task.done == False)
+        return q.order_by(Task.due_date, Task.created_at).all()
+    finally:
+        db.close()
+
+# -------------------------
+# TASK TEMPLATES / BULK
+# -------------------------
+DEFAULT_TASK_TEMPLATES = {
+    "format_checklist": [
+        {"title": "Confermare DJ", "description": "Verificare disponibilità e rider"},
+        {"title": "Confermare Vocalist", "description": "Contattare vocalist e confermare set"},
+        {"title": "Allestimenti", "description": "Verificare palco e luci"},
+        {"title": "Hotel", "description": "Controllare prenotazioni hotel"}
+    ],
+    "artist_checklist": [
+        {"title": "Rider tecnico", "description": "Inviare e confermare rider"},
+        {"title": "Facchini", "description": "Confermare numero facchini"},
+        {"title": "Trasporti", "description": "Organizzare van e viaggi"}
+    ]
+}
+
+def create_tasks_from_template(event_id: int, template_name: str, assignee: str = "", due_date: Optional[date] = None) -> List[Task]:
+    db = get_session()
+    created = []
+    try:
+        items = DEFAULT_TASK_TEMPLATES.get(template_name, [])
+        for it in items:
+            t = Task(event_id=event_id, title=it["title"], description=it.get("description",""), assignee=assignee, due_date=due_date)
+            db.add(t)
+            created.append(t)
+        db.commit()
+        for t in created:
+            db.refresh(t)
+        return created
+    finally:
+        db.close()
+
+# -------------------------
+# EXPORT / IMPORT JSON (backup/restore)
+# -------------------------
+def export_data_json(path: str) -> None:
+    db = get_session()
+    try:
+        data = {
+            "artists": [],
+            "services": [],
+            "formats": [],
+            "promoters": [],
+            "tour_managers": [],
+            "events": [],
+            "tasks": []
+        }
+        for a in db.query(Artist).all():
+            data["artists"].append({"id": a.id, "name": a.name, "role": a.role, "phone": a.phone, "email": a.email, "notes": a.notes})
+        for s in db.query(Service).all():
+            data["services"].append({"id": s.id, "name": s.name, "contact": s.contact, "phone": s.phone, "notes": s.notes})
+        for f in db.query(Format).all():
+            data["formats"].append({"id": f.id, "name": f.name, "description": f.description, "notes": f.notes})
+        for p in db.query(Promoter).all():
+            data["promoters"].append({"id": p.id, "name": p.name, "contact": p.contact, "phone": p.phone, "email": p.email, "notes": p.notes})
+        for t in db.query(TourManager).all():
+            data["tour_managers"].append({"id": t.id, "name": t.name, "contact": t.contact, "phone": t.phone, "email": t.email, "notes": t.notes})
+        for e in db.query(Event).all():
+            data["events"].append({
+                "id": e.id, "date": e.date.isoformat() if e.date else None, "title": e.title, "location": e.location,
+                "type": e.type, "format_id": e.format_id, "promoter_id": e.promoter_id, "tour_manager_id": e.tour_manager_id,
+                "status": e.status, "notes": e.notes, "van": e.van, "travel": e.travel, "hotel": e.hotel,
+                "allestimenti": e.allestimenti, "facchini": e.facchini, "payments_acconto": e.payments_acconto,
+                "payments_saldo": e.payments_saldo, "dj_id": e.dj_id, "vocalist_id": e.vocalist_id,
+                "ballerine_ids": e.ballerine_ids, "mascotte_ids": e.mascotte_ids,
+                "artist_ids": [a.id for a in e.artists], "service_ids": [s.id for s in e.services]
+            })
+        for tk in db.query(Task).all():
+            data["tasks"].append({
+                "id": tk.id, "event_id": tk.event_id, "title": tk.title, "description": tk.description,
+                "assignee": tk.assignee, "due_date": tk.due_date.isoformat() if tk.due_date else None, "done": bool(tk.done)
+            })
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+    finally:
+        db.close()
+
+def import_data_json(path: str, clear_existing: bool = False) -> None:
+    db = get_session()
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        if clear_existing:
+            db.query(Task).delete()
+            db.query(Event).delete()
+            db.query(Artist).delete()
+            db.query(Service).delete()
+            db.query(Format).delete()
+            db.query(Promoter).delete()
+            db.query(TourManager).delete()
+            db.commit()
+        # import in ordine semplice (no id preservation)
+        for a in data.get("artists", []):
+            db.add(Artist(name=a.get("name",""), role=a.get("role",""), phone=a.get("phone",""), email=a.get("email",""), notes=a.get("notes","")))
+        for s in data.get("services", []):
+            db.add(Service(name=s.get("name",""), contact=s.get("contact",""), phone=s.get("phone",""), notes=s.get("notes","")))
+        for f in data.get("formats", []):
+            db.add(Format(name=f.get("name",""), description=f.get("description",""), notes=f.get("notes","")))
+        for p in data.get("promoters", []):
+            db.add(Promoter(name=p.get("name",""), contact=p.get("contact",""), phone=p.get("phone",""), email=p.get("email",""), notes=p.get("notes","")))
+        for t in data.get("tour_managers", []):
+            db.add(TourManager(name=t.get("name",""), contact=t.get("contact",""), phone=t.get("phone",""), email=t.get("email",""), notes=t.get("notes","")))
+        db.commit()
+        # events and tasks import could be implemented with mapping old ids to new ids if needed
+    finally:
+        db.close()
