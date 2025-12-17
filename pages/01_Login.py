@@ -1,25 +1,46 @@
 import streamlit as st
 import streamlit_authenticator as stauth
-import yaml
+from db import init_db
 
 st.set_page_config(page_title="Login")
+init_db()
 
-config = {
-    "credentials": {
-        "usernames": {
-            "ale": {"name":"Ale", "password": stauth.Hasher(['password']).generate()[0]}
+# --- CONFIGURAZIONE PROTOTIPO ---
+# Per prototipo locale: definisci le password qui (meglio usare st.secrets in produzione)
+plain_passwords = ["changeme"]  # sostituisci con password sicura o usa st.secrets
+
+# Genera gli hash una sola volta
+try:
+    hashed_passwords = stauth.Hasher(plain_passwords).generate()
+except Exception as e:
+    st.error("Errore nella generazione degli hash delle password. Controlla la versione di streamlit-authenticator.")
+    st.stop()
+
+# Costruisci le credenziali usando gli hash
+credentials = {
+    "usernames": {
+        "ale": {
+            "name": "Ale",
+            "password": hashed_passwords[0]
         }
-    },
-    "cookie": {"name":"agency_cookie","key":"some_random_key","expiry_days":30},
-    "preauthorized": {"emails": []}
+    }
 }
 
-auth = stauth.Authenticate(config['credentials'], config['cookie']['name'], config['cookie']['key'], config['cookie']['expiry_days'])
-name, authentication_status, username = auth.login("Login", "main")
+# Inizializza l'autenticatore
+auth = stauth.Authenticate(
+    credentials,
+    cookie_name="agency_cookie",
+    key="some_random_key",            # in produzione usa un valore sicuro da secrets
+    cookie_expiry_days=30
+)
 
-if authentication_status:
+name, auth_status, username = auth.login("Login", "main")
+
+if auth_status:
     st.success(f"Benvenuto {name}")
-elif authentication_status is False:
-    st.error("Username/password errati")
+    st.write("Vai al menu a sinistra per navigare.")
+elif auth_status is False:
+    st.error("Username o password errati")
 else:
     st.info("Inserisci le credenziali")
+
